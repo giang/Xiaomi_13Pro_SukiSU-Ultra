@@ -143,7 +143,7 @@ jobs:
           # Clone repositories using the branch names
           git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
-          git clone https://github.com/monstorix/KernelBuild-Socrates -b main
+          git clone https://github.com/giang/KernelBuild-Nuwa -b main
           cd SukiSU_patch
           cp -r AnyKernel3 ../
           cd ..
@@ -168,8 +168,8 @@ jobs:
           echo "Initializing and syncing kernel source..."
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}"
           # $REPO init --depth=1 --u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
-          $REPO init --depth=1 --u https://monstorix:${{ secrets.GITHUB_TOKEN }}@github.com/Monstorix/KernelBuild-Socrates.git -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
-          REMOTE_BRANCH=$(git ls-remote https://monstorix:${{ secrets.GITHUB_TOKEN }}@github.com/Monstorix/android_gki_kernel_5.15_common.git ${FORMATTED_BRANCH})
+          $REPO init --depth=1 --u https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/KernelBuild-Socrates.git -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
+          REMOTE_BRANCH=$(git ls-remote https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/common.git ${FORMATTED_BRANCH})
           DEFAULT_MANIFEST_PATH=.repo/manifests/default.xml
 
           # Check if branch is deprecated
