@@ -169,9 +169,9 @@ jobs:
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}"
           # $REPO init --depth=1 --u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
           $REPO init --depth=1 --u https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/KernelBuild-Nuwa.git -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
-          #REMOTE_BRANCH=$(git ls-remote https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/common.git ${FORMATTED_BRANCH})
+          REMOTE_BRANCH=$(git ls-remote https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/common.git ${FORMATTED_BRANCH})
           # Test CRDroid
-          REMOTE_BRANCH=$(git ls-remote https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/android_kernel_xiaomi_sm8550.git 15.0
+          #REMOTE_BRANCH=$(git ls-remote https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/android_kernel_xiaomi_sm8550.git 15.0
           DEFAULT_MANIFEST_PATH=.repo/manifests/default.xml
 
           # Check if branch is deprecated
