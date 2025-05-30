@@ -1,6 +1,6 @@
-# KernelBuild-Socrates
+# KernelBuild-Nuwa
 
-This is a repo for building GKI kernel for Redmi K60 Pro (socrates) with SukiSU, SUSFS and KPM.
+This is a repo for building GKI kernel for Xiaomi 13 Pro (nuwa) with SukiSU, SUSFS and KPM.
 
 > [!WARNING]
 > GKI kernel source code used here is compatible for all the Xiaomi SM8550 devices, but this repo was created only for testing on devices that I have, the kernel built may not suitable for using on other devices.
