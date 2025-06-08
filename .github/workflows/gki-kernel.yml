@@ -147,16 +147,6 @@ jobs:
           cp -r AnyKernel3 ../
           cd ..
 
-      - name: Set CONFIG Environment Variable
-        run: |
-          # Set CONFIG dynamically based on inputs values
-          CONFIG="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}"
-
-          # Set CONFIG as an environment variable for future steps
-          echo "CONFIG=$CONFIG" >> $GITHUB_ENV
-
-          echo "CONFIG set to: $CONFIG"
-
       - name: Initialize and Sync Kernel Source
         run: |
           echo "Creating folder for configuration: $CONFIG..."
@@ -260,7 +250,7 @@ jobs:
             cp -r ../../SukiSU_patch/other/zram/lz4k_oplus ./lib/
 
             # cp ../../SukiSU_patch/other/zram/zram_patch/${{ inputs.kernel_version }}/lz4kd.patch ./
-            cp ../../KernelBuild-Nuwa/lz4kd.patch ./
+            cp ../../Xiaomi_13Pro_SukiSU-Ultra/lz4kd.patch ./
             echo "正在打lz4kd补丁"
             patch -p1 -F 3 < lz4kd.patch || true
             echo '完成LZ4KD补丁'
