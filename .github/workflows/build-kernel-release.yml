@@ -38,6 +38,11 @@ on:
         required: false
         type: string  # This input is required if 'Other' is chosen
         default: ""  # Default is empty, but can be filled in if 'Other' is selected
+      set_defbbr:
+        description: 'BBR Default'
+        required: true
+        type: boolean
+        
 
 jobs:
   build-kernel-a13-5-15:
