@@ -65,7 +65,7 @@ jobs:
     if: ${{ inputs.make_release }} && github.ref == 'refs/heads/main'
     env:
       REPO_OWNER: Giang
-      REPO_NAME: KernelBuild-Nuwa
+      REPO_NAME: Xiaomi_13Pro_SukiSU-Ultra
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
       RELEASE_NAME: "TEST ONLY - GKI/KernelSU-${{ inputs.kernelsu_variant }} ${{ inputs.kernelsu_branch }}/SUSFS"
