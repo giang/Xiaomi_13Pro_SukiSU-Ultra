@@ -147,6 +147,16 @@ jobs:
           cp -r AnyKernel3 ../
           cd ..
 
+      - name: Set CONFIG Environment Variable
+        run: |
+          # Set CONFIG dynamically based on inputs values
+          CONFIG="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}"
+
+          # Set CONFIG as an environment variable for future steps
+          echo "CONFIG=$CONFIG" >> $GITHUB_ENV
+
+          echo "CONFIG set to: $CONFIG"
+
       - name: Initialize and Sync Kernel Source
         run: |
           echo "Creating folder for configuration: $CONFIG..."
@@ -248,14 +258,12 @@ jobs:
           echo "Changing to configuration directory: $CONFIG..."
           cd "$CONFIG/common"
           # Apply additional patch
-          #cp ../../SukiSU_patch/69_hide_stuff.patch ./
-          #patch -p1 -F 3 < 69_hide_stuff.patch
+          cp ../../SukiSU_patch/69_hide_stuff.patch ./
+          patch -p1 -F 3 < 69_hide_stuff.patch
 
       - name: Copy and Apply LZ4KD and ZSTDN patches
         run: |
           if [[ "${{ env.ZRAM }}" == "true" ]]; then
-            set -x
-            set -e
             echo "Changing to configuration directory: $CONFIG..."
             cd "$CONFIG/common"
             cp -r ../../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
@@ -278,6 +286,8 @@ jobs:
       - name: LZ4KD&Lz4k_oplus配置
         run: |
           if [[ "${{ env.ZRAM }}" == "true" ]]; then
+            set -x
+            set -e
             echo "写入LZ4KD&ZSTDN config依赖"
             CONFIG_FILE="$CONFIG/common/arch/arm64/configs/gki_defconfig"
 
@@ -337,7 +347,7 @@ jobs:
       - name: Add SUSFS Configuration Settings
         run: |
           echo "Changing to configuration directory: $CONFIG..."
-          # cd "$CONFIG"
+          #cd "$CONFIG"
           CONFIG_FILE="$CONFIG/common/arch/arm64/configs/gki_defconfig"
 
           echo "Adding configuration settings to gki_defconfig..."
@@ -457,7 +467,7 @@ jobs:
           if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
             echo "Patching Image file..."
             cd "$CONFIG/out/${{ inputs.android_version }}-${{ inputs.kernel_version }}/dist"
-            curl -LSs "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux" -o patch
+            curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux" -o patch
             chmod 777 patch
             ./patch
             rm -rf Image
@@ -471,7 +481,7 @@ jobs:
           if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
             echo "Patching Image file..."
             cd "$CONFIG/bazel-bin/common/kernel_aarch64/"
-            curl -LSs "https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux" -o patch
+            curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU_patch/refs/heads/main/kpm/patch_linux" -o patch
             chmod 777 patch
             ./patch
             rm -rf Image
