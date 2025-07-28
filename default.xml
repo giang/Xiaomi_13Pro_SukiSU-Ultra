@@ -18,7 +18,7 @@
     <linkfile src="abi" dest="build/abi" />
     <linkfile src="static_analysis" dest="build/static_analysis" />
   </project>
-  <project path="common" name="giang/common" remote="github" revision="android13-5.15-2025-03" upstream="android13-5.15-2025-03" dest-branch="android13-5.15-2025-03">
+  <project path="common" name="giang/common" remote="github" revision="android13-5.15-2025-07" upstream="android13-5.15-2025-07" dest-branch="android13-5.15-2025-03">
     <linkfile src="." dest=".source_date_epoch_dir" />
   </project>
   <project path="kernel/tests" name="kernel/tests" revision="945946db4f6f56e036288fa33026d4a921fb891c" upstream="main" dest-branch="main" />
