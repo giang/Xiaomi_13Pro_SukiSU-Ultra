@@ -188,7 +188,7 @@ jobs:
             echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
             echo "$RELEASE_NOTES" >> $GITHUB_ENV
             echo "SukiSU Manager:" >> $GITHUB_ENV
-            echo "-> https://github.com/ShirkNeko/KernelSU" >> $GITHUB_ENV
+            echo "-> https://github.com/SukiSU-Ultra/SukiSU-Ultra" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
             echo "Unknown variant"
