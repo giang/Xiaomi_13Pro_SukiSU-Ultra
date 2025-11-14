@@ -213,10 +213,10 @@ jobs:
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
-            cd ./KernelSU
-            export KSU_VERSION=$(expr $(git rev-list --count main 2>/dev/null || echo 13000) + 37185)
-            echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-            sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+            #cd ./KernelSU
+            #export KSU_VERSION=$(expr $(git rev-list --count main 2>/dev/null || echo 13000) + 37185)
+            #echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+            #sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
           fi
 
       - name: Apply SUSFS Patches for KernelSU Variants
