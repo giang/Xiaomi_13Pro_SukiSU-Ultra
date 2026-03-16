@@ -31,8 +31,8 @@ on:
         options:
           - Stable
           - Dev
-          - Other
-        default: Dev
+          - builtin
+        default: builtin
       kernelsu_branch_other:
         description: "If 'Other' is selected, specify your custom branch"
         required: false
