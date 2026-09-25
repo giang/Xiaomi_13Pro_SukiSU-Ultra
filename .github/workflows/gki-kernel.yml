@@ -191,8 +191,6 @@ jobs:
             patch -p1 < fix_5.15.legacy.patch
           fi
 
-
-
       - name: Determine the branch for KernelSU
         run: |
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable" ]]; then
@@ -441,6 +439,18 @@ jobs:
 
           path.write_text(text.replace(old, new, 1))
           PY
+
+      - name: Apply SUSFS sucompat shim
+        if: ${{ github.event.inputs.SUSFS_META != '-1' }}
+        env:
+          KERNEL_ROOT: ${{ github.workspace }}/kernel_workspace/kernel_platform
+        run: |
+          set -euo pipefail
+          SHIM_URL="https://raw.githubusercontent.com/giang/abk-susfs-sucompat-shim/refs/heads/main/setup.sh"
+          SHIM_PATH="$RUNNER_TEMP/susfs-sucompat-shim.sh"
+          curl --fail --silent --show-error --location "$SHIM_URL" -o "$SHIM_PATH"
+          chmod +x "$SHIM_PATH"
+          bash "$SHIM_PATH"
 
       - name: Config Kernel Name
         run: |
