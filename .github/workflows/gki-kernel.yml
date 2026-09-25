@@ -423,6 +423,25 @@ jobs:
           echo "CONFIG_IP6_NF_MATCH_HL=y" >> "$CONFIG_FILE"
           echo "CONFIG_BPF_STREAM_PARSER=y" >> "$CONFIG_FILE"
 
+      - name: Apply local SUSFS compatibility fixes
+        run: |
+          FILE="$CONFIG/common/fs/proc/task_mmu.c"
+          python3 - "$FILE" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          text = path.read_text()
+
+          old = "struct dentry *dentry;"
+          new = "struct dentry *dentry = NULL;"
+
+          if old not in text:
+              raise SystemExit(f"Expected declaration not found in {path}")
+
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Config Kernel Name
         run: |
           echo "Changing to configuration directory: $CONFIG..."
