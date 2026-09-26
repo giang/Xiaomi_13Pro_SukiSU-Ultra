@@ -442,7 +442,7 @@ jobs:
 
       - name: Apply SUSFS sucompat shim
         env:
-          KERNEL_ROOT: ${{ github.workspace }}/${{ env.CONFIG }}/common
+          KERNEL_ROOT: ${{ github.workspace }}/${{ env.CONFIG }}
         run: |
           set -euo pipefail
           SHIM_URL="https://raw.githubusercontent.com/giang/abk-susfs-sucompat-shim/refs/heads/main/setup.sh"
