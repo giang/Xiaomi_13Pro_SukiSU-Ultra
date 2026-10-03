@@ -208,6 +208,8 @@ jobs:
           fi
 
       - name: Add KernelSU & Sync Version with Manager CI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Changing to configuration directory: $CONFIG..."
           cd "$CONFIG"
