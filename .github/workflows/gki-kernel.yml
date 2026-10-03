@@ -194,23 +194,83 @@ jobs:
       - name: Determine the branch for KernelSU
         run: |
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable" ]]; then
-              echo "BRANCH=-s builtin" >> $GITHUB_ENV
+            echo "BRANCH=-s builtin" >> $GITHUB_ENV
+            echo "KSU_BRANCH_NAME=main" >> $GITHUB_ENV
           elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
-              echo "BRANCH=-s main" >> $GITHUB_ENV
+            echo "BRANCH=-s main" >> $GITHUB_ENV
+            echo "KSU_BRANCH_NAME=main" >> $GITHUB_ENV
           elif [[ "${{ inputs.kernelsu_branch }}" == "Other" && -n "${{ inputs.kernelsu_branch_other }}" ]]; then
             echo "BRANCH=-s ${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
+            echo "KSU_BRANCH_NAME=${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
           else
             echo "Error: Custom branch not provided for 'Other'" >&2
             exit 1
           fi
 
-      - name: Add KernelSU
+      - name: Add KernelSU & Download Latest Manager APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Changing to configuration directory: $CONFIG..."
           cd "$CONFIG"
+
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+
+            TARGET_BRANCH="${KSU_BRANCH_NAME:-main}"
+            
+            # 1. Đồng bộ commit KernelSU theo commit mới nhất của Manager CI trên cùng nhánh
+            cd ./KernelSU
+            git fetch origin --unshallow 2>/dev/null || git fetch origin --depth=10000 2>/dev/null || true
+
+            MANAGER_RUN_JSON=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/workflows/build-manager.yml/runs?branch=${TARGET_BRANCH}&status=success&per_page=1" 2>/dev/null || echo "")
+            MANAGER_SHA=$(echo "$MANAGER_RUN_JSON" | jq -r '.workflow_runs[0].head_sha // empty')
+            
+            if [ -n "$MANAGER_SHA" ]; then
+              echo "🎯 Đồng bộ KernelSU sang commit SHA của Manager CI: $MANAGER_SHA (Branch: $TARGET_BRANCH)"
+              git checkout "$MANAGER_SHA" || git checkout "origin/$TARGET_BRANCH" || true
+            fi
+            cd ..
+
+            # 2. Tải duy nhất Artifact tên "Manager" (Manager.zip) từ CI về thư mục AnyKernel3
+            ANYKERNEL_DIR="$GITHUB_WORKSPACE/AnyKernel3"
+            mkdir -p "$ANYKERNEL_DIR"
+            RUN_ID=$(echo "$MANAGER_RUN_JSON" | jq -r '.workflow_runs[0].id // empty')
+
+            echo "🔍 Đang tải Manager APK từ CI (Run ID: $RUN_ID)..."
+
+            if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+              echo "✅ Tìm thấy CI Run ID: $RUN_ID"
+              gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --name "Manager" --dir "$ANYKERNEL_DIR" || \
+              gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*Manager*" --dir "$ANYKERNEL_DIR" || true
+            else
+              echo "⚠️ Không tìm thấy CI Artifact, fallback tải Manager APK từ Release..."
+              gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*Manager*.apk" --dir "$ANYKERNEL_DIR" || true
+            fi
+
+            # 3. Giải nén Manager.zip vào AnyKernel3 để đóng gói cùng Kernel
+            cd "$ANYKERNEL_DIR"
+            if [ -f "Manager.zip" ]; then
+              echo "📦 Giải nén Manager.zip vào AnyKernel3..."
+              unzip -o "Manager.zip"
+              rm -f "Manager.zip"
+            elif [ -f "Manager/Manager.zip" ]; then
+              mv Manager/Manager.zip ./
+              unzip -o "Manager.zip"
+              rm -rf "Manager" "Manager.zip"
+            else
+              for zip in *Manager*.zip; do
+                if [ -f "$zip" ]; then
+                  echo "📦 Giải nén $zip..."
+                  unzip -o "$zip"
+                  rm -f "$zip"
+                fi
+              done
+            fi
+
+            echo "📋 Danh sách file Manager APK trong AnyKernel3:"
+            ls -la *.apk || echo "⚠️ Không tìm thấy file APK nào!"
           fi
 
       - name: 添加 Baseband-guard 支持
