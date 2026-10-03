@@ -275,11 +275,25 @@ jobs:
               gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*.apk" --dir "$ANYKERNEL_DIR" || true
             fi
 
-            # 4. Giải nén zip và di chuyển APK vào AnyKernel3
+            # 4. Giải nén zip, di chuyển APK và bảo tồn thư mục gốc của AnyKernel3
             cd "$ANYKERNEL_DIR"
             find . -maxdepth 2 -name "*.zip" -type f -exec unzip -o {} -d . \; -exec rm -f {} +
-            find . -mindepth 2 -name "*.apk" -type f -exec mv {} . \;
-            find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+            find . -mindepth 2 -name "*.apk" -type f -exec mv -f {} . \;
+
+            # Dọn dẹp các thư mục giải nén tạm thời, bỏ qua thư mục gốc của AnyKernel3
+            for dir in */; do
+              [ -d "$dir" ] || continue
+              dirname=$(basename "$dir")
+              case "$dirname" in
+                META-INF|tools|patch|patching|ramdisk|modules|.git)
+                  # Thư mục AnyKernel3 mặc định -> Giữ lại nguyên vẹn
+                  ;;
+                *)
+                  echo "🧹 Xóa thư mục tạm giải nén: $dirname"
+                  rm -rf "$dir"
+                  ;;
+              esac
+            done
 
             echo "📋 Danh sách file APK thu được trong AnyKernel3:"
             ls -la *.apk || echo "⚠️ Không tìm thấy file APK nào!"
