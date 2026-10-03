@@ -196,12 +196,15 @@ jobs:
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable" ]]; then
               echo "BRANCH=-s builtin" >> $GITHUB_ENV
               echo "KSU_BRANCH_NAME=main" >> $GITHUB_ENV
+              echo "KSU_MANAGER_BRANCH=main" >> $GITHUB_ENV
           elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && ( "${{ inputs.kernelsu_variant }}" == "SukiSU" ) ]]; then
               echo "BRANCH=-s main" >> $GITHUB_ENV
               echo "KSU_BRANCH_NAME=main" >> $GITHUB_ENV
+              echo "KSU_MANAGER_BRANCH=main" >> $GITHUB_ENV
           elif [[ "${{ inputs.kernelsu_branch }}" == "Other" && -n "${{ inputs.kernelsu_branch_other }}" ]]; then
             echo "BRANCH=-s ${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
             echo "KSU_BRANCH_NAME=${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
+            echo "KSU_MANAGER_BRANCH=${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
           else
             echo "Error: Custom branch not provided for 'Other'" >&2
             exit 1
@@ -215,90 +218,64 @@ jobs:
           cd "$CONFIG"
 
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+            KSU_MANAGER_BRANCH="${KSU_MANAGER_BRANCH:-main}"
+            echo "Adding KernelSU SukiSU (Branch: $KSU_MANAGER_BRANCH)..."
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/${KSU_MANAGER_BRANCH}/kernel/setup.sh" | bash $BRANCH
 
-            TARGET_BRANCH="${KSU_BRANCH_NAME:-main}"
-
-            # 1. Đồng bộ commit SHA KernelSU với Manager CI và ghi đè KSU_VERSION chuẩn
             cd ./KernelSU
+
+            # 1. Fetch đầy đủ lịch sử commit
             git fetch origin --unshallow 2>/dev/null || git fetch origin --depth=10000 2>/dev/null || true
 
-            MANAGER_RUN_JSON=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/workflows/build-manager.yml/runs?branch=${TARGET_BRANCH}&status=success&per_page=1" 2>/dev/null || echo "")
+            # 2. Lấy commit SHA mới nhất từ Manager CI
+            MANAGER_RUN_JSON=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/workflows/build-manager.yml/runs?branch=${KSU_MANAGER_BRANCH}&status=success&per_page=1" 2>/dev/null || echo "")
             MANAGER_SHA=$(echo "$MANAGER_RUN_JSON" | jq -r '.workflow_runs[0].head_sha // empty')
-            RUN_ID=$(echo "$MANAGER_RUN_JSON" | jq -r '.workflow_runs[0].id // empty')
 
             if [ -n "$MANAGER_SHA" ]; then
-              echo "🎯 Checkout KernelSU sang commit SHA của Manager CI: $MANAGER_SHA (Branch: $TARGET_BRANCH)"
-              git checkout "$MANAGER_SHA" || git checkout "origin/$TARGET_BRANCH" || true
+              echo "🎯 Checkout KernelSU sang commit SHA của Manager CI: $MANAGER_SHA (Branch: $KSU_MANAGER_BRANCH)"
+              git checkout "$MANAGER_SHA" || git checkout "origin/$KSU_MANAGER_BRANCH" || true
+            else
+              echo "⚠️ Không lấy được MANAGER_SHA, checkout mặc định theo origin/$KSU_MANAGER_BRANCH"
+              git checkout "origin/$KSU_MANAGER_BRANCH" || true
             fi
 
-            # Tính toán KSU_VERSION đồng bộ theo đếm commit
+            # 3. Tính toán KSU_VERSION chuẩn xác theo số lượng commit
             KSU_COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 13000)
             KSU_VERSION=$(expr $KSU_COMMIT_COUNT + 37185)
+            echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
             echo "✅ KSU_VERSION tính toán cho Kernel: $KSU_VERSION (Commits: $KSU_COMMIT_COUNT)"
 
-            # Ghi đè KSU_VERSION vào kernel/Makefile
+            # 4. Lấy Tag version mới nhất
+            KSU_VERSION_TAG=$(curl -fsSL https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/releases/latest \
+              | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+            if [[ -z "$KSU_VERSION_TAG" || "$(printf '%s\n' "$KSU_VERSION_TAG" "3.1.7" | sort -V | head -n1)" != "3.1.7" ]]; then
+              KSU_VERSION_TAG="3.1.7"
+            fi
+
+            GIT_HASH=$(git rev-parse --short HEAD)
+            VERSION_FULL="v$KSU_VERSION_TAG-$GIT_HASH@$KSU_MANAGER_BRANCH"
+
+            ESC_VERSION_FULL=$(printf '%s' "$VERSION_FULL" | sed 's/[&|\\/]/\\&/g')
+            ESC_KSU_VERSION_TAG=$(printf '%s' "$KSU_VERSION_TAG" | sed 's/[&|\\/]/\\&/g')
+
+            # 5. Ghi đè thông tin phiên bản vào kernel/Makefile
+            if grep -q '^KSU_VERSION_FULL := ' kernel/Makefile; then
+              sed -i "s|^KSU_VERSION_FULL := .*|KSU_VERSION_FULL := $ESC_VERSION_FULL|" kernel/Makefile
+            fi
+
+            if grep -q '^KSU_VERSION_API := ' kernel/Makefile; then
+              sed -i "s|^KSU_VERSION_API := .*|KSU_VERSION_API := $ESC_KSU_VERSION_TAG|" kernel/Makefile
+            fi
+
             if grep -qE '^KSU_VERSION[[:space:]]*[\?:]?=' kernel/Makefile; then
               sed -i -E "s|^KSU_VERSION[[:space:]]*[\?:]?=.*|KSU_VERSION := $KSU_VERSION|" kernel/Makefile
             else
               echo "KSU_VERSION := $KSU_VERSION" >> kernel/Makefile
             fi
-            cd ..
 
-            # 2. Tải Manager APK từ CI khớp với Run ID
-            ANYKERNEL_DIR="$GITHUB_WORKSPACE/AnyKernel3"
-            mkdir -p "$ANYKERNEL_DIR"
-
-            if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-              echo "🔍 Tìm thấy CI Run ID: $RUN_ID, tiến hành tìm Artifact Manager..."
-              ARTIFACTS_JSON=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/runs/${RUN_ID}/artifacts" 2>/dev/null || echo "")
-
-              ARTIFACT_NAME=$(echo "$ARTIFACTS_JSON" | jq -r '
-                .artifacts[]?
-                | select(.expired == false)
-                | select(.name | test("ksud|lkm|susfs|mappings|kpmmgr"; "i") | not)
-                | select(.name | test("Manager|manager|app|apk"; "i"))
-                | .name
-              ' | head -n 1)
-
-              if [ -n "$ARTIFACT_NAME" ] && [ "$ARTIFACT_NAME" != "null" ]; then
-                echo "🎯 Tải Artifact: '$ARTIFACT_NAME'..."
-                gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --name "$ARTIFACT_NAME" --dir "$ANYKERNEL_DIR" || true
-              else
-                gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --dir "$ANYKERNEL_DIR" || true
-              fi
-            fi
-
-            # 3. Fallback sang Release nếu không tìm thấy CI Artifact
-            if ! ls "$ANYKERNEL_DIR"/*.zip "$ANYKERNEL_DIR"/*.apk >/dev/null 2>&1; then
-              echo "⚠️ Fallback: Tải Manager APK từ Release..."
-              gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*Manager*.apk" --dir "$ANYKERNEL_DIR" || \
-              gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*.apk" --dir "$ANYKERNEL_DIR" || true
-            fi
-
-            # 4. Giải nén zip, di chuyển APK và bảo tồn thư mục gốc của AnyKernel3
-            cd "$ANYKERNEL_DIR"
-            find . -maxdepth 2 -name "*.zip" -type f -exec unzip -o {} -d . \; -exec rm -f {} +
-            find . -mindepth 2 -name "*.apk" -type f -exec mv -f {} . \;
-
-            # Dọn dẹp các thư mục giải nén tạm thời, bỏ qua thư mục gốc của AnyKernel3
-            for dir in */; do
-              [ -d "$dir" ] || continue
-              dirname=$(basename "$dir")
-              case "$dirname" in
-                META-INF|tools|patch|patching|ramdisk|modules|.git)
-                  # Thư mục AnyKernel3 mặc định -> Giữ lại nguyên vẹn
-                  ;;
-                *)
-                  echo "🧹 Xóa thư mục tạm giải nén: $dirname"
-                  rm -rf "$dir"
-                  ;;
-              esac
-            done
-
-            echo "📋 Danh sách file APK thu được trong AnyKernel3:"
-            ls -la *.apk || echo "⚠️ Không tìm thấy file APK nào!"
+            echo "::group::Thông tin Makefile sau khi cấu hình"
+            grep -nE '^(REPO_OWNER|REPO_NAME|REPO_BRANCH|KSU_VERSION|KSU_VERSION_API|KSU_VERSION_FULL|VERSION_TAG)' kernel/Makefile
+            echo "::endgroup::"
           fi
 
       - name: 添加 Baseband-guard 支持
@@ -595,6 +572,82 @@ jobs:
               tools/bazel build --disk_cache=/home/runner/.cache/bazel --config=fast --lto=thin //common:kernel_aarch64_dist || exit 1
             fi
             ccache --show-stats
+
+      - name: Download Latest SukiSU-Ultra APK from CI
+        if: inputs.kernelsu_variant == 'SukiSU'
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ANYKERNEL_DIR="$GITHUB_WORKSPACE/AnyKernel3"
+          mkdir -p "$ANYKERNEL_DIR"
+          cd "$ANYKERNEL_DIR"
+
+          MANAGER_BRANCH="${{ env.KSU_MANAGER_BRANCH }}"
+          [ -z "$MANAGER_BRANCH" ] && MANAGER_BRANCH="main"
+
+          echo "🔍 Tìm kiếm CI Manager Run ID trên nhánh: $MANAGER_BRANCH..."
+
+          # 1. Lấy Run ID của lượt build CI thành công mới nhất
+          RUN_ID=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/workflows/build-manager.yml/runs?branch=${MANAGER_BRANCH}&status=success&per_page=1" --jq '.workflow_runs[0].id' 2>/dev/null || echo "")
+
+          if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+            echo "✅ Tìm thấy CI Run ID: $RUN_ID"
+
+            # 2. Truy vấn API lấy danh sách Artifacts và lọc tên Manager APK
+            ARTIFACTS_JSON=$(gh api "repos/SukiSU-Ultra/SukiSU-Ultra/actions/runs/${RUN_ID}/artifacts" 2>/dev/null || echo "")
+
+            ARTIFACT_NAME=$(echo "$ARTIFACTS_JSON" | jq -r '
+              .artifacts[]?
+              | select(.expired == false)
+              | select(.name | test("ksud|lkm|susfs|mappings|kpmmgr"; "i") | not)
+              | select(.name | test("Manager|manager|app|apk"; "i"))
+              | .name
+            ' | head -n 1)
+
+            if [ -z "$ARTIFACT_NAME" ] || [ "$ARTIFACT_NAME" == "null" ]; then
+              ARTIFACT_NAME=$(echo "$ARTIFACTS_JSON" | jq -r '
+                .artifacts[]?
+                | select(.expired == false)
+                | select(.name | test("ksud|lkm|susfs|mappings|kpmmgr"; "i") | not)
+                | .name
+              ' | head -n 1)
+            fi
+
+            if [ -n "$ARTIFACT_NAME" ] && [ "$ARTIFACT_NAME" != "null" ]; then
+              echo "🎯 Tải Artifact: '$ARTIFACT_NAME'..."
+              gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --name "$ARTIFACT_NAME" --dir . || true
+            else
+              echo "⚠️ Tải toàn bộ Artifacts về thư mục AnyKernel3..."
+              gh run download "$RUN_ID" --repo "SukiSU-Ultra/SukiSU-Ultra" --dir . || true
+            fi
+          else
+            echo "⚠️ Không tìm thấy CI Run ID, fallback tải từ Release..."
+            gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*Manager*.apk" --dir . || \
+            gh release download --repo "SukiSU-Ultra/SukiSU-Ultra" --pattern "*.apk" --dir . || true
+          fi
+
+          # 3. Giải nén zip, đưa file .apk ra ngoài gốc AnyKernel3 và dọn dẹp thư mục tạm
+          find . -maxdepth 2 -name "*.zip" -type f -exec unzip -o {} -d . \; -exec rm -f {} +
+          find . -mindepth 2 -name "*.apk" -type f -exec mv -f {} . \;
+
+          for dir in */; do
+            [ -d "$dir" ] || continue
+            dirname=$(basename "$dir")
+            case "$dirname" in
+              META-INF|tools|patch|patching|ramdisk|modules|.git)
+                # ĐÂY LÀ THƯ MỤC CỦA ANYKERNEL3 -> GIỮ NGUYÊN
+                ;;
+              *)
+                echo "🧹 Xóa thư mục tạm: $dirname"
+                rm -rf "$dir"
+                ;;
+            esac
+          done
+
+          echo "📋 Các file APK hiện có trong AnyKernel3:"
+          ls -la *.apk || echo "⚠️ Không tìm thấy file APK nào!"
+
 
       - name: Patch Image File A12 & A13
         if: ${{ inputs.android_version == 'android12' || inputs.android_version == 'android13' }}
