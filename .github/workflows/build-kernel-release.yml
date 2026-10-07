@@ -22,8 +22,8 @@ on:
         required: true
         type: choice
         options:
-          - SukiSU
-        default: SukiSU
+          - BakaSU
+        default: BakaSU
       kernelsu_branch:
         description: "Choose ksu branch"
         required: true
@@ -46,7 +46,7 @@ on:
 
 jobs:
   build-kernel-a13-5-15:
-    if: ${{ inputs.build_a13_515 }} && github.ref == 'refs/heads/main'
+    if: ${{ inputs.build_a13_515 && github.ref == 'refs/heads/main'}}
     uses: ./.github/workflows/kernel-a13-5.15.yml
     secrets: inherit
     with:
@@ -62,10 +62,10 @@ jobs:
       actions: write
     needs:
         - build-kernel-a13-5-15
-    if: ${{ inputs.make_release }} && github.ref == 'refs/heads/main'
+    if: ${{ inputs.make_release && github.ref == 'refs/heads/main'}}
     env:
       REPO_OWNER: Giang
-      REPO_NAME: Xiaomi_13Pro_SukiSU-Ultra
+      REPO_NAME: Xiaomi_13Pro_BakaSU
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
       RELEASE_NAME: "TEST ONLY - GKI/KernelSU-${{ inputs.kernelsu_variant }} ${{ inputs.kernelsu_branch }}/SUSFS"
@@ -94,10 +94,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Determine the branch for KernelSU-${{ inputs.kernelsu_variant }}
-        if: ${{ inputs.kernelsu_branch == 'Dev' || inputs.kernelsu_variant == 'SukiSU' }}
+        if: ${{ inputs.kernelsu_branch == 'Dev' || inputs.kernelsu_variant == 'BakaSU' }}
         run: |
           # Determine the branch based on user input
-          if [[ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+          if [[ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]]; then
             BRANCH="main"
           elif [[ "${{ inputs.kernelsu_branch }}" == "Other" && -n "${{ inputs.kernelsu_branch_other }}" ]]; then
             BRANCH="${{ inputs.kernelsu_branch_other }}"
@@ -111,15 +111,15 @@ jobs:
         
       - name: Get commit hash or tag and generate URL for KernelSU-${{ inputs.kernelsu_variant }}
         run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
-            REPO_URL="https://github.com/SukiSU-Ultra/SukiSU-Ultra.git"
-            REPO_URL2="SukiSU-Ultra/SukiSU-Ultra"
+          if [ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]; then
+            echo "This is the BakaSU variant"
+            REPO_URL="https://github.com/Baka-SU/BakaSU.git"
+            REPO_URL2="Baka-SU/BakaSU"
           else
             echo "Unknown variant"
           fi
           
-          if [[ "${{ inputs.kernelsu_branch }}" == "Stable" && "${{ inputs.kernelsu_variant }}" != "SukiSU" ]]; then
+          if [[ "${{ inputs.kernelsu_branch }}" == "Stable" && "${{ inputs.kernelsu_variant }}" != "BakaSU" ]]; then
             # Fetch the latest tag
             TAG=$(git ls-remote --tags --sort=-v:refname $REPO_URL | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
             if [[ -z "$TAG" ]]; then
@@ -129,7 +129,7 @@ jobs:
             KSU_REF=$TAG
             KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
 
-          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" || "${{ inputs.kernelsu_variant }}" == "BakaSU" ]]; then
             # Fetch the latest commit from "next" branch
             COMMIT_HASH=$(git ls-remote $REPO_URL refs/heads/$KSU_BRANCH | awk '{ print $1 }')
             if [[ -z "$COMMIT_HASH" ]]; then
@@ -183,12 +183,12 @@ jobs:
 
       - name: Append Commit Hashes & Links to `RELEASE_NOTES` & Append KernelSU-Next Reference to `RELEASE_NOTES`
         run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
+          if [ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]; then
+            echo "This is the BakaSU variant"
             echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
             echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "SukiSU Manager:" >> $GITHUB_ENV
-            echo "-> https://github.com/SukiSU-Ultra/SukiSU-Ultra" >> $GITHUB_ENV
+            echo "BakaSU Manager:" >> $GITHUB_ENV
+            echo "-> https://github.com/Baka-SU/BakaSU" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
             echo "Unknown variant"
