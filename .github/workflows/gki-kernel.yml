@@ -212,11 +212,7 @@ jobs:
             echo "Adding KernelSU SukiSU..."
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
             
-          fi
-
-          # Thử fix lỗi thiếu arch.h
-          curl -Lo common/drivers/kernelsu/include/arch.h https://raw.githubusercontent.com/tiann/KernelSU/refs/heads/main/kernel/include/arch.h
-          
+          fi          
 
       - name: 添加 Baseband-guard 支持
         #if: ${{ github.event.inputs.BBG == 'true' }}
@@ -445,7 +441,13 @@ jobs:
           path.write_text(text.replace(old, new, 1))
           PY
 
+          # Fix lỗi build
+          curl -Lo ksu_susfs_fixup.sh https://raw.githubusercontent.com/adennnqt/anykern-DumpC2J/main/scripts/ksu_susfs_fixup.sh
+          chmod +x ksu_susfs_fixup.sh
+          bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu sukisu
+          
       - name: Apply SUSFS sucompat shim
+        if: false
         env:
           KERNEL_ROOT: ${{ github.workspace }}/${{ env.CONFIG }}
         run: |
