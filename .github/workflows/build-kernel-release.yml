@@ -59,6 +59,7 @@ jobs:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
       kernelsu_branch: ${{ inputs.kernelsu_branch }}
       kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
+      ksu_manager_branch: ${{ inputs.ksu_manager_branch }}
 
   trigger-release:
     runs-on: ubuntu-latest
