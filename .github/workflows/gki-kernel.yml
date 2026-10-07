@@ -447,6 +447,7 @@ jobs:
           #bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu bakasu
           
       - name: Apply SUSFS sucompat shim
+        if: false
         env:
           KERNEL_ROOT: ${{ github.workspace }}/${{ env.CONFIG }}
         run: |
