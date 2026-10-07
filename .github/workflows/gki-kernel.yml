@@ -442,12 +442,11 @@ jobs:
           PY
 
           # Fix lỗi build
-          curl -Lo ksu_susfs_fixup.sh https://raw.githubusercontent.com/adennnqt/anykern-DumpC2J/main/scripts/ksu_susfs_fixup.sh
+          curl -Lo ksu_susfs_fixup.sh https://raw.githubusercontent.com/giang/anykern-DumpC2J/main/scripts/ksu_susfs_fixup.sh
           chmod +x ksu_susfs_fixup.sh
-          bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu resukisu
+          bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu bakasu
           
       - name: Apply SUSFS sucompat shim
-        if: false
         env:
           KERNEL_ROOT: ${{ github.workspace }}/${{ env.CONFIG }}
         run: |
