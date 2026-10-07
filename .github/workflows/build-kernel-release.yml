@@ -24,6 +24,11 @@ on:
         options:
           - BakaSU
         default: BakaSU
+      ksu_manager_branch:
+        description: "Input the branch of BakaSU Manager app"
+        required: true
+        type: string
+        default: "main"
       kernelsu_branch:
         description: "Choose ksu branch"
         required: true
