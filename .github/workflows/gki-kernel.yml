@@ -573,6 +573,38 @@ jobs:
           # Create gzip of the Image file
           gzip -n -k -f -9 ./Image > ./Image.gz
 
+      - name: Download Latest BakaSU APK from CI
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MANAGER_ARTIFACT=Manager-release
+
+          echo "Using branch: $KSU_MANAGER_BRANCH"
+          echo "Downloading artifact: $MANAGER_ARTIFACT"
+
+          run_id=$(gh api "repos/Baka-SU/BakaSU/actions/workflows/build-manager.yml/runs?branch=$KSU_MANAGER_BRANCH&status=success&event=push&per_page=1" --jq '.workflow_runs[0].id' || echo "")
+
+          if [[ -z "$run_id" ]]; then
+            echo "No successful workflow run found on branch $KSU_MANAGER_BRANCH. Skipping download."
+            exit 0
+          fi
+          artifact_url=$(gh api "repos/Baka-SU/BakaSU/actions/runs/$run_id/artifacts" | jq -r ".artifacts[] | select(.name == \"$MANAGER_ARTIFACT\") | .archive_download_url" | head -n1)
+
+          if [[ -z "$artifact_url" ]]; then
+            echo "No artifact '$MANAGER_ARTIFACT' found in run $run_id. Skipping download."
+            exit 0
+          fi
+          echo "Downloading from: $artifact_url"
+          curl -fL -H "Authorization: token $GITHUB_TOKEN" -o "${MANAGER_ARTIFACT}.zip" "$artifact_url"
+          echo "Trying to extract arm64-v8a APK..."
+          if unzip -l "${MANAGER_ARTIFACT}.zip" | grep -q "arm64-v8a.*\.apk"; then
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*arm64-v8a*.apk" -d ./AnyKernel3/
+          else
+            echo "arm64-v8a APK not found, extracting generic APK..."
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
+          fi
+
       - name: Create ZIP Files for Different Formats
         run: |
           echo "Creating zip files for all formats..."
