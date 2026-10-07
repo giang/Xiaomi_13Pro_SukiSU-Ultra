@@ -142,7 +142,7 @@ jobs:
           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/WildPlusKernel/kernel_patches.git
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
-          git clone https://github.com/giang/Xiaomi_13Pro_SukiSU-Ultra -b main
+          git clone https://github.com/giang/Xiaomi_13Pro_BakaSU -b main
           cd SukiSU_patch
           cp -r AnyKernel3 ../
           cd ..
@@ -167,7 +167,7 @@ jobs:
           echo "Initializing and syncing kernel source..."
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}"
           # $REPO init --depth=1 --u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
-          $REPO init --depth=1 -u "https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/Xiaomi_13Pro_SukiSU-Ultra.git" -b "common-${FORMATTED_BRANCH}" --repo-rev=v2.16
+          $REPO init --depth=1 -u "https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/Xiaomi_13Pro_BakaSU.git" -b "common-${FORMATTED_BRANCH}" --repo-rev=v2.16
           REMOTE_BRANCH=$(git ls-remote "https://giang:${{ secrets.GITHUB_TOKEN }}@github.com/giang/common.git" "${FORMATTED_BRANCH}")
           DEFAULT_MANIFEST_PATH=.repo/manifests/default.xml
 
@@ -194,8 +194,8 @@ jobs:
       - name: Determine the branch for KernelSU
         run: |
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable" ]]; then
-              echo "BRANCH=-s builtin" >> $GITHUB_ENV
-          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+              echo "BRANCH=-s main" >> $GITHUB_ENV
+          elif [[ "${{ inputs.kernelsu_branch }}" == "Dev" && "${{ inputs.kernelsu_variant }}" == "BakaSU" ]]; then
               echo "BRANCH=-s main" >> $GITHUB_ENV
           elif [[ "${{ inputs.kernelsu_branch }}" == "Other" && -n "${{ inputs.kernelsu_branch_other }}" ]]; then
             echo "BRANCH=-s ${{ inputs.kernelsu_branch_other }}" >> $GITHUB_ENV
@@ -204,14 +204,13 @@ jobs:
             exit 1
           fi
 
-      - name: Add KernelSU
+      - name: Add KernelSU BakaSU
         run: |
           echo "Changing to configuration directory: $CONFIG..."
           cd "$CONFIG"
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Adding KernelSU SukiSU..."
-            #curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
-            curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash -s main
+          if [ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]; then
+            echo "Adding KernelSU BakaSU..."
+            curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash -s $BRANCH
           fi          
 
       - name: 添加 Baseband-guard 支持
@@ -245,12 +244,12 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
 
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Applying SUSFS patches for SukiSU..."
+          if [ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]; then
+            echo "Applying SUSFS patches for BakaSU..."
              cd ./KernelSU
 
 
-            echo "Applying SukiSU specific SUSFS patch..."
+            echo "Applying BakaSU specific SUSFS patch..."
           else
             echo "Invalid KernelSU variant selected!"
             exit 1
@@ -265,8 +264,8 @@ jobs:
           echo "Changing to configuration directory: $CONFIG..."
           cd "$CONFIG/common"
 
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Applying hooks for SukiSU..."
+          if [ "${{ inputs.kernelsu_variant }}" == "BakaSU" ]; then
+            echo "Applying hooks for BakaSU..."
             #cp ../../SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./
             #patch -p1 -F 3 < scope_min_manual_hooks_v1.6.patch
           fi
@@ -290,7 +289,7 @@ jobs:
             cp -r ../../SukiSU_patch/other/zram/lz4k_oplus ./lib/
 
             # cp ../../SukiSU_patch/other/zram/zram_patch/${{ inputs.kernel_version }}/lz4kd.patch ./
-            cp ../../Xiaomi_13Pro_SukiSU-Ultra/lz4kd.patch ./
+            cp ../../Xiaomi_13Pro_BakaSU/lz4kd.patch ./
             echo "正在打lz4kd补丁"
             patch -p1 -F 3 < lz4kd.patch || true
             echo '完成LZ4KD补丁'
