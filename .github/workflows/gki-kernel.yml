@@ -211,7 +211,12 @@ jobs:
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+            
           fi
+
+          # Thử fix lỗi thiếu arch.h
+          curl -Lo common/drivers/kernelsu/include/arch.h https://raw.githubusercontent.com/tiann/KernelSU/refs/heads/main/kernel/include/arch.h
+          
 
       - name: 添加 Baseband-guard 支持
         #if: ${{ github.event.inputs.BBG == 'true' }}
