@@ -589,6 +589,7 @@ jobs:
             echo "arm64-v8a APK not found, extracting generic APK..."
             unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
           fi
+          rm ${MANAGER_ARTIFACT}.zip
 
       - name: Create ZIP Files for Different Formats
         run: |
