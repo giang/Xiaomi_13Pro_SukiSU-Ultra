@@ -210,8 +210,8 @@ jobs:
           cd "$CONFIG"
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
-            
+            #curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+            curl -LSs "https://raw.githubusercontent.com/Baka-SU/Baka-SU/main/kernel/setup.sh" | bash $BRANCH
           fi          
 
       - name: 添加 Baseband-guard 支持
