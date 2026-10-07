@@ -444,7 +444,7 @@ jobs:
           # Fix lỗi build
           curl -Lo ksu_susfs_fixup.sh https://raw.githubusercontent.com/adennnqt/anykern-DumpC2J/main/scripts/ksu_susfs_fixup.sh
           chmod +x ksu_susfs_fixup.sh
-          bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu sukisu
+          bash ksu_susfs_fixup.sh $CONFIG/common/drivers/kernelsu resukisu
           
       - name: Apply SUSFS sucompat shim
         if: false
