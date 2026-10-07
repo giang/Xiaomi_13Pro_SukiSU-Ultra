@@ -28,6 +28,9 @@ on:
       kernelsu_branch:
         required: true
         type: string
+      ksu_manager_branch:
+        required: true
+        type: string
       kernelsu_branch_other:
         required: false
         type: string
@@ -559,10 +562,9 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KSU_MANAGER_BRANCH: ${{ inputs.ksu_manager_branch }}
         run: |
-          MANAGER_ARTIFACT=Manager-release
-          KSU_MANAGER_BRANCH=${{ inputs.ksu_manager_branch }}
-          
+          MANAGER_ARTIFACT=Manager-release          
           echo "Using branch: $KSU_MANAGER_BRANCH"
           echo "Downloading artifact: $MANAGER_ARTIFACT"
 
