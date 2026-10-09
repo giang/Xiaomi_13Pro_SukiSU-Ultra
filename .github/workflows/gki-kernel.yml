@@ -422,6 +422,7 @@ jobs:
           echo "CONFIG_BPF_STREAM_PARSER=y" >> "$CONFIG_FILE"
 
       - name: Apply local SUSFS compatibility fixes
+        if: false
         run: |
           FILE="$CONFIG/common/fs/proc/task_mmu.c"
           python3 - "$FILE" <<'PY'
